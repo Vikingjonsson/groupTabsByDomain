@@ -1,16 +1,10 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": [
-      "ES2017",
-      "DOM"
-    ],
+    "lib": ["ES2017", "DOM"],
     "module": "ESNext",
     "moduleResolution": "node",
-    "types": [
-      "chrome",
-      "jest"
-    ],
+    "types": ["chrome", "jest"],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -18,11 +12,6 @@
     "sourceMap": false,
     "declaration": false
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

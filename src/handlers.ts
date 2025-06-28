@@ -4,7 +4,7 @@ const getBaseDomain = (url: string): string | null => {
   try {
     const { hostname } = new URL(url);
     return hostname.replace(/^www\./, '');
-  } catch (error) {
+  } catch (_error) {
     console.error('Invalid URL:', url);
     return null;
   }
