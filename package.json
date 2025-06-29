@@ -13,6 +13,8 @@
   ],
   "scripts": {
     "build": "npm run lint && webpack",
+    "package": "npm run build && npm run zip",
+    "zip": "cd dist && zip -r ../group-tabs-by-domain-v$(node -p \"require('../package.json').version\").zip . && cd ..",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "format": "prettier --write .",

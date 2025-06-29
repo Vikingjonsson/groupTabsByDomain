@@ -17,13 +17,23 @@ A Chrome extension that automatically groups tabs by their domain to help organi
 3. Build the extension: `npm run build`
 4. Load the `dist/` folder as an unpacked extension in Chrome
 
+## Publishing to Chrome Web Store
+
+1. Build and package the extension: `npm run package`
+2. Upload the generated `group-tabs-by-domain-v[version].zip` file to the [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole/)
+3. Fill in the store listing details using the provided Chrome Web Store description
+4. Submit for review
+
 ## Development
 
 ### Scripts
 
 - `npm run build` - Build the extension for production
+- `npm run package` - Build and create Chrome Web Store zip package
 - `npm run lint` - Run ESLint to check for code issues
 - `npm run lint:fix` - Automatically fix linting issues
+- `npm run format` - Format code with Prettier
+- `npm run format:check` - Check code formatting
 - `npm test` - Run unit tests
 - `npm test:watch` - Run tests in watch mode
 
