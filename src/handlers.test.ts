@@ -184,7 +184,72 @@ describe('Tab Grouping Handlers', () => {
 
       await groupTabsByBaseUrl();
 
-      expect(mockGroups).toHaveLength(0); // Only one valid domain tab
+      expect(mockGroups).toHaveLength(0);
+    });
+
+    it('does not group multiple chrome:// URLs together', async () => {
+      createTab(1, 'chrome://newtab/', 1);
+      createTab(2, 'chrome://newtab/', 1);
+      createTab(3, 'chrome://settings/', 1);
+      createTab(4, 'chrome://settings/', 1);
+
+      await groupTabsByBaseUrl();
+
+      expect(mockGroups).toHaveLength(0);
+    });
+
+    it('ignores chrome-extension:// URLs', async () => {
+      createTab(1, 'chrome-extension://abcdef/popup.html', 1);
+      createTab(2, 'chrome-extension://abcdef/options.html', 1);
+
+      await groupTabsByBaseUrl();
+
+      expect(mockGroups).toHaveLength(0);
+    });
+
+    it('skips tabs with missing url', async () => {
+      const tab = createTab(1, '', 1);
+      (tab as any).url = undefined;
+      createTab(2, 'https://example.com/a', 1);
+      createTab(3, 'https://example.com/b', 1);
+
+      await groupTabsByBaseUrl();
+
+      expect(mockGroups).toHaveLength(1);
+      expect(mockGroups[0].title).toBe('example.com');
+    });
+
+    it('adds tabs to an existing group', async () => {
+      createTab(1, 'https://example.com/a', 1);
+      createTab(2, 'https://example.com/b', 1);
+
+      await groupTabsByBaseUrl();
+      expect(mockGroups).toHaveLength(1);
+
+      createTab(3, 'https://example.com/c', 1);
+
+      await groupTabsByBaseUrl();
+
+      expect(mockGroups).toHaveLength(1);
+      expect(mockTabs.filter((t) => t.groupId === mockGroups[0].id)).toHaveLength(3);
+    });
+
+    it('assigns consistent colors for the same domain', async () => {
+      createTab(1, 'https://example.com/a', 1);
+      createTab(2, 'https://example.com/b', 1);
+
+      await groupTabsByBaseUrl();
+      const firstColor = mockGroups[0].color;
+
+      clearMocks();
+
+      createTab(3, 'https://example.com/c', 1);
+      createTab(4, 'https://example.com/d', 1);
+
+      await groupTabsByBaseUrl();
+      const secondColor = mockGroups[0].color;
+
+      expect(firstColor).toBe(secondColor);
     });
   });
 

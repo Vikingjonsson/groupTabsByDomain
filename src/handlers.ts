@@ -1,28 +1,35 @@
 const NEW_TAB_URL = 'chrome://newtab/';
 
+const GROUP_COLORS: chrome.tabGroups.ColorEnum[] = [
+  'blue',
+  'cyan',
+  'green',
+  'grey',
+  'orange',
+  'pink',
+  'purple',
+  'red',
+  'yellow',
+];
+
 const getBaseDomain = (url: string): string | null => {
   try {
-    const { hostname } = new URL(url);
+    const { hostname, protocol } = new URL(url);
+    if (protocol === 'chrome:' || protocol === 'chrome-extension:') {
+      return null;
+    }
     return hostname.replace(/^www\./, '');
-  } catch (_error) {
-    console.error('Invalid URL:', url);
+  } catch {
     return null;
   }
 };
 
-const getRandomColor = (): chrome.tabGroups.ColorEnum => {
-  const colors: chrome.tabGroups.ColorEnum[] = [
-    'blue',
-    'cyan',
-    'green',
-    'grey',
-    'orange',
-    'pink',
-    'purple',
-    'red',
-    'yellow',
-  ];
-  return colors[Math.floor(Math.random() * colors.length)];
+const getColorForDomain = (domain: string): chrome.tabGroups.ColorEnum => {
+  let hash = 0;
+  for (let i = 0; i < domain.length; i++) {
+    hash = (hash * 31 + domain.charCodeAt(i)) | 0;
+  }
+  return GROUP_COLORS[Math.abs(hash) % GROUP_COLORS.length];
 };
 
 const buildDomainMap = (tabs: chrome.tabs.Tab[]): Record<number, Record<string, number[]>> => {
@@ -62,7 +69,7 @@ const createNewGroup = async (
 
   await chrome.tabGroups.update(groupId, {
     title: domain,
-    color: getRandomColor(),
+    color: getColorForDomain(domain),
   });
 };
 
