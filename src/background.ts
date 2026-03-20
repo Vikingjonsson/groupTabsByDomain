@@ -6,7 +6,7 @@ chrome.tabs.onCreated.addListener(async (tab: chrome.tabs.Tab) => {
   }
 });
 
-chrome.tabs.onUpdated.addListener(async (tabId: number, changeInfo: chrome.tabs.TabChangeInfo) => {
+chrome.tabs.onUpdated.addListener(async (tabId: number, changeInfo: chrome.tabs.OnUpdatedInfo) => {
   if (changeInfo.status === 'complete') {
     if (isValidTabUrl(changeInfo.url)) {
       await groupTabsByBaseUrl();

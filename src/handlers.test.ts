@@ -31,6 +31,7 @@ const chromeMock = {
           collapsed: false,
           title: '',
           color: 'grey',
+          shared: false,
         });
       }
 

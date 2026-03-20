@@ -1,6 +1,8 @@
 const NEW_TAB_URL = 'chrome://newtab/';
 
-const GROUP_COLORS: chrome.tabGroups.ColorEnum[] = [
+type GroupColor = `${chrome.tabGroups.Color}`;
+
+const GROUP_COLORS: GroupColor[] = [
   'blue',
   'cyan',
   'green',
@@ -24,7 +26,7 @@ const getBaseDomain = (url: string): string | null => {
   }
 };
 
-const getColorForDomain = (domain: string): chrome.tabGroups.ColorEnum => {
+const getColorForDomain = (domain: string): GroupColor => {
   let hash = 0;
   for (let i = 0; i < domain.length; i++) {
     hash = (hash * 31 + domain.charCodeAt(i)) | 0;
@@ -57,13 +59,15 @@ const buildDomainMap = (tabs: chrome.tabs.Tab[]): Record<number, Record<string, 
   return domainMap;
 };
 
+const asNonEmpty = (ids: number[]): [number, ...number[]] => ids as [number, ...number[]];
+
 const createNewGroup = async (
   tabIds: number[],
   domain: string,
   windowId: number
 ): Promise<void> => {
   const groupId = await chrome.tabs.group({
-    tabIds,
+    tabIds: asNonEmpty(tabIds),
     createProperties: { windowId },
   });
 
@@ -74,7 +78,7 @@ const createNewGroup = async (
 };
 
 const addToExistingGroup = async (tabIds: number[], groupId: number): Promise<void> => {
-  await chrome.tabs.group({ tabIds, groupId });
+  await chrome.tabs.group({ tabIds: asNonEmpty(tabIds), groupId });
 };
 
 export const groupTabsByBaseUrl = async (): Promise<void> => {
@@ -110,7 +114,7 @@ export const ungroupIfNecessary = async (): Promise<void> => {
     if (groupTabs.length < 2) {
       const tabIds = groupTabs.map((tab) => tab.id).filter((id): id is number => id !== undefined);
 
-      await chrome.tabs.ungroup(tabIds);
+      await chrome.tabs.ungroup(asNonEmpty(tabIds));
     }
   }
 };
