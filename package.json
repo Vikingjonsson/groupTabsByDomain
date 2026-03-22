@@ -12,8 +12,8 @@
     "productivity"
   ],
   "scripts": {
-    "dev": "webpack --watch --mode development",
-    "build": "npm run lint && webpack",
+    "dev": "NODE_OPTIONS='--import tsx' webpack --watch --mode development",
+    "build": "npm run lint && NODE_OPTIONS='--import tsx' webpack",
     "package": "npm run build && npm run zip",
     "zip": "cd dist && zip -r ../group-tabs-by-domain-v$(node -p \"require('../package.json').version\").zip . && cd ..",
     "lint": "eslint src --ext .ts",
@@ -25,7 +25,10 @@
   },
   "devDependencies": {
     "@types/chrome": "^0.1.38",
+    "@types/copy-webpack-plugin": "^8.0.1",
     "@types/jest": "^30.0.0",
+    "@types/node": "^25.5.0",
+    "@types/webpack": "^5.28.5",
     "@typescript-eslint/eslint-plugin": "^8.57.1",
     "@typescript-eslint/parser": "^8.57.1",
     "copy-webpack-plugin": "^14.0.0",
@@ -35,6 +38,7 @@
     "prettier": "^3.8.1",
     "ts-jest": "^29.4.6",
     "ts-loader": "^9.5.4",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "webpack": "^5.105.4",
     "webpack-cli": "^7.0.2"

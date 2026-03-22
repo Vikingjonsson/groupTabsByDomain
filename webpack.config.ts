@@ -1,7 +1,8 @@
-const path = require('path');
-const CopyWebpackPlugin = require('copy-webpack-plugin');
+import path from 'path';
+import CopyWebpackPlugin from 'copy-webpack-plugin';
+import type { Configuration } from 'webpack';
 
-module.exports = {
+const config: Configuration = {
   entry: './src/background.ts',
   mode: 'production',
   module: {
@@ -39,3 +40,5 @@ module.exports = {
     minimize: true,
   },
 };
+
+export default config;
