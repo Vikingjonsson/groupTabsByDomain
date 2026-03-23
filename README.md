@@ -6,8 +6,8 @@ A Chrome extension that automatically groups tabs by their domain to help organi
 
 - **Automatic Grouping**: Groups tabs by domain as you browse
 - **Window-Specific**: Only groups tabs within the same Chrome window
-- **Smart Filtering**: Excludes `chrome://newtab/` tabs from grouping
-- **Dynamic Colors**: Assigns random colors to each domain group
+- **Smart Filtering**: Excludes `chrome://`, `chrome-extension://`, and new tab pages from grouping
+- **Consistent Colors**: Assigns deterministic colors per domain (same domain always gets the same color)
 - **Auto-Cleanup**: Removes groups when they have fewer than 2 tabs
 
 ## Installation
@@ -21,6 +21,7 @@ A Chrome extension that automatically groups tabs by their domain to help organi
 
 ### Scripts
 
+- `npm run dev` - Watch mode for development
 - `npm run build` - Build the extension for production
 - `npm run package` - Build and create Chrome Web Store zip package
 - `npm run lint` - Run ESLint to check for code issues

@@ -9,6 +9,7 @@ Chrome extension (Manifest V3) that automatically groups browser tabs by domain.
 ## Commands
 
 - `npm run build` - Lint + webpack production build (outputs to `dist/`)
+- `npm run dev` - Webpack watch mode for development
 - `npm test` - Run Jest tests
 - `npm test -- --testNamePattern="pattern"` - Run a single test by name
 - `npm run lint` - ESLint on `src/` TypeScript files
@@ -22,7 +23,7 @@ Chrome extension (Manifest V3) that automatically groups browser tabs by domain.
 All source code lives in `src/`. The build entry point is `src/background.ts`.
 
 - **`src/background.ts`** - Service worker entry point. Registers Chrome event listeners (`onCreated`, `onUpdated`, `onRemoved`) that trigger grouping/ungrouping logic.
-- **`src/handlers.ts`** - Core logic. Exports `groupTabsByBaseUrl`, `ungroupIfNecessary`, and `isValidTabUrl`. Groups tabs per-window by hostname (stripping `www.`), requires 2+ tabs to form a group, and auto-ungroups when a group drops below 2 tabs.
+- **`src/handlers.ts`** - Core logic. Exports `groupTabsByBaseUrl`, `ungroupIfNecessary`, and `isValidTabUrl`. Groups tabs per-window by hostname (stripping `www.`, filtering `chrome://` and `chrome-extension://` URLs), requires 2+ tabs to form a group, and auto-ungroups when a group drops below 2 tabs. Uses deterministic hash-based color assignment per domain.
 - **`src/handlers.test.ts`** - Tests mock the `chrome` global directly (no setup file needed). Uses in-memory `mockTabs`/`mockGroups` arrays to simulate Chrome API behavior.
 
 Webpack bundles to `dist/background.js` and copies `manifest.json` + `icons/` via CopyWebpackPlugin.
@@ -34,4 +35,4 @@ GitHub Actions runs lint, format check, and tests on Node 18.x and 20.x for push
 ## Notes
 
 - Jest is configured to only match tests in `src/**/*.test.ts`.
-- ESLint ignores `.js` files (config files are JS, source is TS).
+- Config files are TypeScript (`webpack.config.ts`, `jest.config.ts`) or JSON (`.eslintrc.json`). Webpack uses `tsx` to load its TS config.
