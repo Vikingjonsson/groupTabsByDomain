@@ -142,6 +142,25 @@ describe('Tab Grouping Handlers', () => {
       expect(mockTabs[0].groupId).toBe(mockGroups[0].id);
     });
 
+    it('does not group single tabs when groupSingleTabs is false (explicit)', async () => {
+      createTab(1, 'https://example.com/page', 1);
+
+      await groupTabsByBaseUrl(false);
+
+      expect(mockGroups).toHaveLength(0);
+    });
+
+    it('assigns correct color to single-tab group', async () => {
+      createTab(1, 'https://example.com/page', 1);
+
+      await groupTabsByBaseUrl(true);
+
+      const validColors = [
+        'blue', 'cyan', 'green', 'grey', 'orange', 'pink', 'purple', 'red', 'yellow',
+      ];
+      expect(validColors).toContain(mockGroups[0].color);
+    });
+
     it('groups multiple tabs from same domain', async () => {
       createTab(1, 'https://google.com/search', 1);
       createTab(2, 'https://google.com/images', 1);
@@ -308,6 +327,24 @@ describe('Tab Grouping Handlers', () => {
 
       // Single tab should remain grouped
       expect(mockTabs[0].groupId).toBe(mockGroups[0].id);
+    });
+
+    it('preserves group dropping from 3 to 1 tab when groupSingleTabs is true', async () => {
+      createTab(1, 'https://example.com/a', 1);
+      createTab(2, 'https://example.com/b', 1);
+      createTab(3, 'https://example.com/c', 1);
+
+      await groupTabsByBaseUrl(true);
+      expect(mockGroups).toHaveLength(1);
+      const groupId = mockGroups[0].id;
+
+      // Simulate two tabs leaving the group
+      (mockTabs[1] as any).groupId = undefined;
+      (mockTabs[2] as any).groupId = undefined;
+
+      await ungroupIfNecessary(true);
+
+      expect(mockTabs[0].groupId).toBe(groupId);
     });
   });
 
