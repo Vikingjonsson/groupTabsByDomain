@@ -80,8 +80,17 @@ const createNewGroup = async (
   });
 };
 
-const addToExistingGroup = async (tabIds: number[], groupId: number): Promise<void> => {
-  await chrome.tabs.group({ tabIds: asNonEmpty(tabIds), groupId });
+const addToExistingGroup = async (
+  tabIds: number[],
+  domain: string,
+  windowId: number,
+  groupId: number
+): Promise<void> => {
+  try {
+    await chrome.tabs.group({ tabIds: asNonEmpty(tabIds), groupId });
+  } catch {
+    await createNewGroup(tabIds, domain, windowId);
+  }
 };
 
 export const groupTabsByBaseUrl = async (groupSingleTabs = false): Promise<void> => {
@@ -103,7 +112,7 @@ export const groupTabsByBaseUrl = async (groupSingleTabs = false): Promise<void>
       if (existingGroups.length === 0) {
         await createNewGroup(tabIds, domain, winId);
       } else {
-        await addToExistingGroup(tabIds, existingGroups[0].id);
+        await addToExistingGroup(tabIds, domain, winId, existingGroups[0].id);
       }
     }
   }

@@ -4,6 +4,7 @@ const STORAGE_KEY = 'groupSingleTabs';
 const MENU_ID = 'group-single-tabs';
 
 let groupSingleTabs = false;
+let localChange = false;
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 const debouncedGroupTabs = (): void => {
@@ -47,13 +48,15 @@ chrome.runtime.onStartup.addListener(() => {
 chrome.contextMenus.onClicked.addListener(async (info) => {
   if (info.menuItemId === MENU_ID) {
     groupSingleTabs = !!info.checked;
+    localChange = true;
     await chrome.storage.sync.set({ [STORAGE_KEY]: groupSingleTabs });
+    localChange = false;
     await applySettings();
   }
 });
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName === 'sync' && changes[STORAGE_KEY]) {
+  if (areaName === 'sync' && changes[STORAGE_KEY] && !localChange) {
     groupSingleTabs = (changes[STORAGE_KEY].newValue ?? false) as boolean;
     setupContextMenu(groupSingleTabs);
     applySettings();
