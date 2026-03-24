@@ -84,15 +84,16 @@ const addToExistingGroup = async (tabIds: number[], groupId: number): Promise<vo
   await chrome.tabs.group({ tabIds: asNonEmpty(tabIds), groupId });
 };
 
-export const groupTabsByBaseUrl = async (): Promise<void> => {
+export const groupTabsByBaseUrl = async (groupSingleTabs = false): Promise<void> => {
   const tabs = await chrome.tabs.query({});
   const domainMap = buildDomainMap(tabs);
+  const minTabs = groupSingleTabs ? 1 : 2;
 
   for (const [windowId, domains] of Object.entries(domainMap)) {
     const winId = parseInt(windowId, 10);
 
     for (const [domain, tabIds] of Object.entries(domains)) {
-      if (tabIds.length < 2) continue;
+      if (tabIds.length < minTabs) continue;
 
       const existingGroups = await chrome.tabGroups.query({
         windowId: winId,

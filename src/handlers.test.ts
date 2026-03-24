@@ -132,6 +132,16 @@ describe('Tab Grouping Handlers', () => {
       expect(mockGroups).toHaveLength(0);
     });
 
+    it('groups a single tab when groupSingleTabs is true', async () => {
+      createTab(1, 'https://example.com/page', 1);
+
+      await groupTabsByBaseUrl(true);
+
+      expect(mockGroups).toHaveLength(1);
+      expect(mockGroups[0].title).toBe('example.com');
+      expect(mockTabs[0].groupId).toBe(mockGroups[0].id);
+    });
+
     it('groups multiple tabs from same domain', async () => {
       createTab(1, 'https://google.com/search', 1);
       createTab(2, 'https://google.com/images', 1);
