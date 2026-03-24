@@ -24,6 +24,7 @@
 ### Task 1: Add `groupSingleTabs` parameter to `groupTabsByBaseUrl`
 
 **Files:**
+
 - Test: `src/handlers.test.ts`
 - Modify: `src/handlers.ts:87-108`
 
@@ -100,6 +101,7 @@ git commit -m "feat: add groupSingleTabs parameter to groupTabsByBaseUrl"
 ### Task 2: Add `groupSingleTabs` parameter to `ungroupIfNecessary`
 
 **Files:**
+
 - Test: `src/handlers.test.ts`
 - Modify: `src/handlers.ts:111-125`
 
@@ -174,6 +176,7 @@ git commit -m "feat: add groupSingleTabs parameter to ungroupIfNecessary"
 ### Task 3: Add remaining tests for `groupSingleTabs` behavior
 
 **Files:**
+
 - Test: `src/handlers.test.ts`
 
 - [ ] **Step 1: Write test — group dropping from 3 to 1 tab stays grouped with groupSingleTabs true**
@@ -222,7 +225,15 @@ it('assigns correct color to single-tab group', async () => {
   await groupTabsByBaseUrl(true);
 
   const validColors = [
-    'blue', 'cyan', 'green', 'grey', 'orange', 'pink', 'purple', 'red', 'yellow',
+    'blue',
+    'cyan',
+    'green',
+    'grey',
+    'orange',
+    'pink',
+    'purple',
+    'red',
+    'yellow',
   ];
   expect(validColors).toContain(mockGroups[0].color);
 });
@@ -245,6 +256,7 @@ git commit -m "test: add groupSingleTabs test coverage"
 ### Task 4: Update manifest.json
 
 **Files:**
+
 - Modify: `manifest.json`
 
 - [ ] **Step 1: Add permissions and action entry**
@@ -288,6 +300,7 @@ git commit -m "feat: add storage, contextMenus permissions and action entry"
 ### Task 5: Update background.ts with cached setting, context menu, and storage listeners
 
 **Files:**
+
 - Modify: `src/background.ts`
 
 - [ ] **Step 1: Rewrite background.ts**
@@ -397,6 +410,7 @@ Expected: Build succeeds
 - [ ] **Step 4: Manual verification checklist**
 
 Load the extension from `dist/` as an unpacked extension in Chrome and verify:
+
 1. Right-click the extension icon — "Group single tabs" checkbox appears, unchecked by default
 2. Check the checkbox — single tabs from a domain get grouped with the domain name
 3. Uncheck the checkbox — single-tab groups are dissolved, multi-tab groups remain
@@ -414,6 +428,7 @@ git commit -m "feat: add context menu toggle and cached groupSingleTabs setting"
 ### Task 6: Final verification and docs
 
 **Files:**
+
 - Modify: `CLAUDE.md` (if needed)
 - Modify: `README.md`
 

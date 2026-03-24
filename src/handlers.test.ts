@@ -156,7 +156,15 @@ describe('Tab Grouping Handlers', () => {
       await groupTabsByBaseUrl(true);
 
       const validColors = [
-        'blue', 'cyan', 'green', 'grey', 'orange', 'pink', 'purple', 'red', 'yellow',
+        'blue',
+        'cyan',
+        'green',
+        'grey',
+        'orange',
+        'pink',
+        'purple',
+        'red',
+        'yellow',
       ];
       expect(validColors).toContain(mockGroups[0].color);
     });

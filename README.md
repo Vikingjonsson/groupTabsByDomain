@@ -9,6 +9,7 @@ A Chrome extension that automatically groups tabs by their domain to help organi
 - **Smart Filtering**: Excludes `chrome://`, `chrome-extension://`, and new tab pages from grouping
 - **Consistent Colors**: Assigns deterministic colors per domain (same domain always gets the same color)
 - **Auto-Cleanup**: Removes groups when they have fewer than 2 tabs
+- **Optional Single-Tab Groups**: Right-click the extension icon to toggle grouping for single tabs
 
 ## Installation
 
