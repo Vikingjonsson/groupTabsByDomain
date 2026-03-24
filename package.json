@@ -16,6 +16,8 @@
     "build": "npm run lint && NODE_OPTIONS='--import tsx' webpack",
     "package": "npm run build && npm run zip",
     "zip": "cd dist && zip -r ../group-tabs-by-domain-v$(node -p \"require('../package.json').version\").zip . && cd ..",
+    "sync-version": "node -e \"const fs=require('fs');const m=JSON.parse(fs.readFileSync('manifest.json'));m.version=require('./package.json').version;fs.writeFileSync('manifest.json',JSON.stringify(m,null,2)+'\\n')\"",
+    "prepackage": "npm run sync-version",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "format": "prettier --write .",
@@ -25,7 +27,6 @@
   },
   "devDependencies": {
     "@types/chrome": "^0.1.38",
-    "@types/copy-webpack-plugin": "^8.0.1",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.5.0",
     "@types/webpack": "^5.28.5",

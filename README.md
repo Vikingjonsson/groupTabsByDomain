@@ -4,7 +4,7 @@ A Chrome extension that automatically groups tabs by their domain to help organi
 
 ## Features
 
-- **Automatic Grouping**: Groups tabs by domain as you browse
+- **Automatic Grouping**: Groups tabs by domain as you browse (strips `www.` prefix)
 - **Window-Specific**: Only groups tabs within the same Chrome window
 - **Smart Filtering**: Excludes `chrome://`, `chrome-extension://`, and new tab pages from grouping
 - **Consistent Colors**: Assigns deterministic colors per domain (same domain always gets the same color)
@@ -29,4 +29,8 @@ A Chrome extension that automatically groups tabs by their domain to help organi
 - `npm run format` - Format code with Prettier
 - `npm run format:check` - Check code formatting
 - `npm test` - Run unit tests
-- `npm test:watch` - Run tests in watch mode
+- `npm run test:watch` - Run tests in watch mode
+
+## License
+
+MIT

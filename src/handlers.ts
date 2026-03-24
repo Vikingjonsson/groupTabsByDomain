@@ -59,7 +59,10 @@ const buildDomainMap = (tabs: chrome.tabs.Tab[]): Record<number, Record<string, 
   return domainMap;
 };
 
-const asNonEmpty = (ids: number[]): [number, ...number[]] => ids as [number, ...number[]];
+const asNonEmpty = (ids: number[]): [number, ...number[]] => {
+  if (ids.length === 0) throw new Error('Expected non-empty array');
+  return ids as [number, ...number[]];
+};
 
 const createNewGroup = async (
   tabIds: number[],
@@ -114,7 +117,9 @@ export const ungroupIfNecessary = async (): Promise<void> => {
     if (groupTabs.length < 2) {
       const tabIds = groupTabs.map((tab) => tab.id).filter((id): id is number => id !== undefined);
 
-      await chrome.tabs.ungroup(asNonEmpty(tabIds));
+      if (tabIds.length > 0) {
+        await chrome.tabs.ungroup(asNonEmpty(tabIds));
+      }
     }
   }
 };

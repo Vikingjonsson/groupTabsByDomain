@@ -310,7 +310,6 @@ describe('Tab Grouping Handlers', () => {
       await groupTabsByBaseUrl();
       expect(mockGroups).toHaveLength(2);
 
-      const exampleGroup = mockGroups.find((g) => g.title === 'example.com')!;
       const githubGroup = mockGroups.find((g) => g.title === 'github.com')!;
 
       // Remove one tab from example.com group
@@ -363,7 +362,17 @@ describe('Tab Grouping Handlers', () => {
       const githubGroup = mockGroups.find((g) => g.title === 'github.com')!;
 
       // Both should have a valid color assigned
-      const validColors = ['blue', 'cyan', 'green', 'grey', 'orange', 'pink', 'purple', 'red', 'yellow'];
+      const validColors = [
+        'blue',
+        'cyan',
+        'green',
+        'grey',
+        'orange',
+        'pink',
+        'purple',
+        'red',
+        'yellow',
+      ];
       expect(validColors).toContain(googleGroup.color);
       expect(validColors).toContain(githubGroup.color);
     });

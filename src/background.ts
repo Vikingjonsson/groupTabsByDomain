@@ -1,26 +1,34 @@
 import { groupTabsByBaseUrl, ungroupIfNecessary, isValidTabUrl } from './handlers';
 
-chrome.tabs.onCreated.addListener(async (tab: chrome.tabs.Tab) => {
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+const debouncedGroupTabs = (): void => {
+  if (debounceTimer) clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(async () => {
+    try {
+      await groupTabsByBaseUrl();
+    } catch (error) {
+      console.error('Failed to group tabs:', error);
+    }
+  }, 100);
+};
+
+chrome.tabs.onCreated.addListener((tab: chrome.tabs.Tab) => {
   if (isValidTabUrl(tab.url)) {
-    await groupTabsByBaseUrl();
+    debouncedGroupTabs();
   }
 });
 
-chrome.tabs.onUpdated.addListener(async (tabId: number, changeInfo: chrome.tabs.OnUpdatedInfo) => {
+chrome.tabs.onUpdated.addListener((_tabId: number, changeInfo: chrome.tabs.OnUpdatedInfo) => {
   if (changeInfo.status === 'complete') {
-    if (isValidTabUrl(changeInfo.url)) {
-      await groupTabsByBaseUrl();
-    } else {
-      setTimeout(async () => {
-        const tab = await chrome.tabs.get(tabId);
-        if (isValidTabUrl(tab.url)) {
-          await groupTabsByBaseUrl();
-        }
-      }, 100);
-    }
+    debouncedGroupTabs();
   }
 });
 
 chrome.tabs.onRemoved.addListener(async () => {
-  await ungroupIfNecessary();
+  try {
+    await ungroupIfNecessary();
+  } catch (error) {
+    console.error('Failed to ungroup tabs:', error);
+  }
 });

@@ -12,6 +12,7 @@ Chrome extension (Manifest V3) that automatically groups browser tabs by domain.
 - `npm run dev` - Webpack watch mode for development
 - `npm test` - Run Jest tests
 - `npm test -- --testNamePattern="pattern"` - Run a single test by name
+- `npm run test:watch` - Jest watch mode
 - `npm run lint` - ESLint on `src/` TypeScript files
 - `npm run lint:fix` - Auto-fix lint issues
 - `npm run format:check` - Prettier check
