@@ -109,13 +109,14 @@ export const groupTabsByBaseUrl = async (groupSingleTabs = false): Promise<void>
   }
 };
 
-export const ungroupIfNecessary = async (): Promise<void> => {
+export const ungroupIfNecessary = async (groupSingleTabs = false): Promise<void> => {
   const groups = await chrome.tabGroups.query({});
+  const minTabs = groupSingleTabs ? 1 : 2;
 
   for (const group of groups) {
     const groupTabs = await chrome.tabs.query({ groupId: group.id });
 
-    if (groupTabs.length < 2) {
+    if (groupTabs.length < minTabs) {
       const tabIds = groupTabs.map((tab) => tab.id).filter((id): id is number => id !== undefined);
 
       if (tabIds.length > 0) {

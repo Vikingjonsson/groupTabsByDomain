@@ -293,6 +293,22 @@ describe('Tab Grouping Handlers', () => {
       expect(mockGroups).toHaveLength(1);
       expect(mockTabs.filter((t) => t.groupId === mockGroups[0].id)).toHaveLength(3);
     });
+
+    it('preserves groups with 1 tab when groupSingleTabs is true', async () => {
+      createTab(1, 'https://example.com/page1', 1);
+      createTab(2, 'https://example.com/page2', 1);
+
+      await groupTabsByBaseUrl(true);
+      expect(mockGroups).toHaveLength(1);
+
+      // Simulate removing one tab from the group
+      (mockTabs[1] as any).groupId = undefined;
+
+      await ungroupIfNecessary(true);
+
+      // Single tab should remain grouped
+      expect(mockTabs[0].groupId).toBe(mockGroups[0].id);
+    });
   });
 
   describe('ungroupIfNecessary - additional cases', () => {
