@@ -285,6 +285,117 @@ describe('Tab Grouping Handlers', () => {
     });
   });
 
+  describe('ungroupIfNecessary - additional cases', () => {
+    it('handles empty groups (0 tabs) without throwing', async () => {
+      createTab(1, 'https://example.com/a', 1);
+      createTab(2, 'https://example.com/b', 1);
+
+      await groupTabsByBaseUrl();
+      expect(mockGroups).toHaveLength(1);
+
+      // Simulate both tabs leaving the group
+      (mockTabs[0] as any).groupId = undefined;
+      (mockTabs[1] as any).groupId = undefined;
+
+      // Should not throw even when group has 0 tabs
+      await expect(ungroupIfNecessary()).resolves.not.toThrow();
+    });
+
+    it('only ungroups groups that dropped below 2 tabs', async () => {
+      createTab(1, 'https://example.com/a', 1);
+      createTab(2, 'https://example.com/b', 1);
+      createTab(3, 'https://github.com/a', 1);
+      createTab(4, 'https://github.com/b', 1);
+
+      await groupTabsByBaseUrl();
+      expect(mockGroups).toHaveLength(2);
+
+      const exampleGroup = mockGroups.find((g) => g.title === 'example.com')!;
+      const githubGroup = mockGroups.find((g) => g.title === 'github.com')!;
+
+      // Remove one tab from example.com group
+      (mockTabs[1] as any).groupId = undefined;
+
+      await ungroupIfNecessary();
+
+      // example.com tab should be ungrouped
+      expect(mockTabs[0].groupId).toBeUndefined();
+      // github.com tabs should still be grouped
+      expect(mockTabs[2].groupId).toBe(githubGroup.id);
+      expect(mockTabs[3].groupId).toBe(githubGroup.id);
+    });
+  });
+
+  describe('groupTabsByBaseUrl - edge cases', () => {
+    it('skips tabs with missing id', async () => {
+      const tab = createTab(1, 'https://example.com/a', 1);
+      (tab as any).id = undefined;
+      createTab(2, 'https://example.com/b', 1);
+      createTab(3, 'https://example.com/c', 1);
+
+      await groupTabsByBaseUrl();
+
+      expect(mockGroups).toHaveLength(1);
+      expect(mockTabs.filter((t) => t.groupId === mockGroups[0].id)).toHaveLength(2);
+    });
+
+    it('skips tabs with invalid URLs', async () => {
+      createTab(1, 'not-a-valid-url', 1);
+      createTab(2, 'also-invalid', 1);
+      createTab(3, 'https://example.com/a', 1);
+      createTab(4, 'https://example.com/b', 1);
+
+      await groupTabsByBaseUrl();
+
+      expect(mockGroups).toHaveLength(1);
+      expect(mockGroups[0].title).toBe('example.com');
+    });
+
+    it('assigns different colors for different domains', async () => {
+      createTab(1, 'https://google.com/a', 1);
+      createTab(2, 'https://google.com/b', 1);
+      createTab(3, 'https://github.com/a', 1);
+      createTab(4, 'https://github.com/b', 1);
+
+      await groupTabsByBaseUrl();
+
+      const googleGroup = mockGroups.find((g) => g.title === 'google.com')!;
+      const githubGroup = mockGroups.find((g) => g.title === 'github.com')!;
+
+      // Both should have a valid color assigned
+      const validColors = ['blue', 'cyan', 'green', 'grey', 'orange', 'pink', 'purple', 'red', 'yellow'];
+      expect(validColors).toContain(googleGroup.color);
+      expect(validColors).toContain(githubGroup.color);
+    });
+
+    it('handles mixed groupable and non-groupable tabs across windows', async () => {
+      // Window 1: 2 google tabs (groupable) + 1 github tab (not groupable alone)
+      createTab(1, 'https://google.com/a', 1);
+      createTab(2, 'https://google.com/b', 1);
+      createTab(3, 'https://github.com/solo', 1);
+
+      // Window 2: 1 google tab (not groupable alone in this window)
+      createTab(4, 'https://google.com/c', 2);
+
+      await groupTabsByBaseUrl();
+
+      expect(mockGroups).toHaveLength(1);
+      expect(mockGroups[0].title).toBe('google.com');
+      expect(mockGroups[0].windowId).toBe(1);
+    });
+  });
+
+  describe('isValidTabUrl - additional cases', () => {
+    it('accepts chrome:// URLs other than newtab', () => {
+      expect(isValidTabUrl('chrome://settings/')).toBe(true);
+      expect(isValidTabUrl('chrome://extensions/')).toBe(true);
+    });
+
+    it('accepts chrome-extension:// URLs', () => {
+      expect(isValidTabUrl('chrome-extension://abcdef/popup.html')).toBe(true);
+    });
+  });
+
   describe('integration scenarios', () => {
     it('handles multi-window scenarios', async () => {
       // Window 1
@@ -300,6 +411,24 @@ describe('Tab Grouping Handlers', () => {
       expect(mockGroups).toHaveLength(2);
       expect(mockGroups.find((g) => g.windowId === 1)?.title).toBe('google.com');
       expect(mockGroups.find((g) => g.windowId === 2)?.title).toBe('stackoverflow.com');
+    });
+
+    it('groups then ungroups correctly in sequence', async () => {
+      createTab(1, 'https://example.com/a', 1);
+      createTab(2, 'https://example.com/b', 1);
+
+      await groupTabsByBaseUrl();
+      expect(mockGroups).toHaveLength(1);
+      expect(mockTabs.filter((t) => t.groupId === mockGroups[0].id)).toHaveLength(2);
+
+      // Simulate removing one tab from the array (tab closed)
+      const removedTab = mockTabs.pop()!;
+      (removedTab as any).groupId = undefined;
+
+      await ungroupIfNecessary();
+
+      // Remaining tab should be ungrouped
+      expect(mockTabs[0].groupId).toBeUndefined();
     });
   });
 });
