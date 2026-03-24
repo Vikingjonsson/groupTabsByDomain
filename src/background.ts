@@ -9,21 +9,13 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 const debouncedGroupTabs = (): void => {
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(async () => {
-    try {
-      await groupTabsByBaseUrl(groupSingleTabs);
-    } catch (error) {
-      console.error('Failed to group tabs:', error);
-    }
+    await groupTabsByBaseUrl(groupSingleTabs);
   }, 100);
 };
 
 const applySettings = async (): Promise<void> => {
-  try {
-    await groupTabsByBaseUrl(groupSingleTabs);
-    await ungroupIfNecessary(groupSingleTabs);
-  } catch (error) {
-    console.error('Failed to apply settings:', error);
-  }
+  await groupTabsByBaseUrl(groupSingleTabs);
+  await ungroupIfNecessary(groupSingleTabs);
 };
 
 const setupContextMenu = (checked: boolean): void => {
@@ -81,9 +73,5 @@ chrome.tabs.onUpdated.addListener((_tabId: number, changeInfo: chrome.tabs.OnUpd
 });
 
 chrome.tabs.onRemoved.addListener(async () => {
-  try {
-    await ungroupIfNecessary(groupSingleTabs);
-  } catch (error) {
-    console.error('Failed to ungroup tabs:', error);
-  }
+  await ungroupIfNecessary(groupSingleTabs);
 });
