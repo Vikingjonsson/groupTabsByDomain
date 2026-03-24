@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Group Tabs by Domain",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Automatically groups browser tabs by domain. Toggle grouping for single tabs on or off via the extension icon.",
   "permissions": [
     "tabs",

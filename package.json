@@ -1,6 +1,6 @@
 {
   "name": "group-tabs-by-domain",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Chrome extension that automatically groups browser tabs by domain, with optional single-tab grouping",
   "author": "Viking Jonsson",
   "license": "MIT",
