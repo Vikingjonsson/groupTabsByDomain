@@ -23,15 +23,15 @@ Chrome extension (Manifest V3) that automatically groups browser tabs by domain.
 
 All source code lives in `src/`. The build entry point is `src/background.ts`.
 
-- **`src/background.ts`** - Service worker entry point. Registers Chrome event listeners (`onCreated`, `onUpdated`, `onRemoved`) that trigger grouping/ungrouping logic.
-- **`src/handlers.ts`** - Core logic. Exports `groupTabsByBaseUrl`, `ungroupIfNecessary`, and `isValidTabUrl`. Groups tabs per-window by hostname (stripping `www.`, filtering `chrome://` and `chrome-extension://` URLs), requires 2+ tabs to form a group, and auto-ungroups when a group drops below 2 tabs. Uses deterministic hash-based color assignment per domain.
+- **`src/background.ts`** - Service worker entry point. Registers Chrome event listeners (`onCreated`, `onUpdated`, `onRemoved`, `tabGroups.onUpdated`) that trigger grouping/ungrouping logic. All tab events are debounced through `scheduleTabProcessing` with an `isProcessingTabChanges` guard to prevent concurrent execution. Manages two context menu toggles ("Group single tabs" and "Auto-collapse inactive groups"), caches settings in module-level variables, and persists them via `chrome.storage.sync`. Listens for `storage.onChanged` for cross-device sync.
+- **`src/handlers.ts`** - Core logic. Exports `groupTabsByDomain`, `dissolveGroupsWithTooFewTabs`, `collapseAllGroupsExcept`, and `isValidTabUrl`. Groups tabs per-window by hostname (stripping `www.`, filtering `chrome://` and `chrome-extension://` URLs, skipping pinned tabs). `groupTabsByDomain` and `dissolveGroupsWithTooFewTabs` accept a `shouldGroupSingleTabs` parameter (default `false`) — when `true`, single tabs are grouped and single-tab groups are preserved. `collapseAllGroupsExcept` collapses all groups in a window except the specified one. Uses deterministic hash-based color assignment per domain.
 - **`src/handlers.test.ts`** - Tests mock the `chrome` global directly (no setup file needed). Uses in-memory `mockTabs`/`mockGroups` arrays to simulate Chrome API behavior.
 
 Webpack bundles to `dist/background.js` and copies `manifest.json` + `icons/` via CopyWebpackPlugin.
 
 ## CI
 
-GitHub Actions runs lint, format check, and tests on Node 18.x and 20.x for pushes/PRs to `main`.
+GitHub Actions runs lint, format check, tests, and build on Node 20.x and 22.x for pushes/PRs to `main`.
 
 ## Notes
 

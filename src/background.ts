@@ -1,80 +1,158 @@
-import { groupTabsByBaseUrl, ungroupIfNecessary, isValidTabUrl } from './handlers';
+import {
+  groupTabsByDomain,
+  dissolveGroupsWithTooFewTabs,
+  collapseAllGroupsExcept,
+  collapseAllInactiveGroups,
+  isValidTabUrl,
+} from './handlers';
 
-const STORAGE_KEY = 'groupSingleTabs';
-const MENU_ID = 'group-single-tabs';
+const STORAGE_KEY_GROUP_SINGLE_TABS = 'groupSingleTabs';
+const STORAGE_KEY_AUTO_COLLAPSE = 'autoCollapseInactive';
+const MENU_ID_GROUP_SINGLE_TABS = 'group-single-tabs';
+const MENU_ID_AUTO_COLLAPSE = 'auto-collapse-inactive';
+const DEBOUNCE_DELAY_MS = 100;
 
-let groupSingleTabs = false;
-let localChange = false;
-let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-
-const debouncedGroupTabs = (): void => {
-  if (debounceTimer) clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(async () => {
-    await groupTabsByBaseUrl(groupSingleTabs);
-  }, 100);
+const state = {
+  shouldGroupSingleTabs: false,
+  shouldAutoCollapseInactive: false,
+  isLocalStorageChange: false,
+  isProcessingTabChanges: false,
+  isCollapsingGroups: false,
+  tabChangeDebounceTimer: null as ReturnType<typeof setTimeout> | null,
 };
 
-const applySettings = async (): Promise<void> => {
-  await groupTabsByBaseUrl(groupSingleTabs);
-  await ungroupIfNecessary(groupSingleTabs);
+const processTabChanges = async (): Promise<void> => {
+  if (state.isProcessingTabChanges) return;
+
+  state.isProcessingTabChanges = true;
+  try {
+    await refreshSettingsFromStorage();
+    await groupTabsByDomain(state.shouldGroupSingleTabs);
+    await dissolveGroupsWithTooFewTabs(state.shouldGroupSingleTabs);
+  } finally {
+    state.isProcessingTabChanges = false;
+  }
 };
 
-const setupContextMenu = (checked: boolean): void => {
+const scheduleTabProcessing = (): void => {
+  if (state.tabChangeDebounceTimer) clearTimeout(state.tabChangeDebounceTimer);
+  state.tabChangeDebounceTimer = setTimeout(processTabChanges, DEBOUNCE_DELAY_MS);
+};
+
+const saveSettingToStorage = async (key: string, value: boolean): Promise<void> => {
+  state.isLocalStorageChange = true;
+  await chrome.storage.sync.set({ [key]: value });
+  state.isLocalStorageChange = false;
+};
+
+const createContextMenu = (): void => {
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
-      id: MENU_ID,
+      id: MENU_ID_GROUP_SINGLE_TABS,
       title: 'Group single tabs',
       type: 'checkbox',
-      checked,
+      checked: state.shouldGroupSingleTabs,
+      contexts: ['action'],
+    });
+    chrome.contextMenus.create({
+      id: MENU_ID_AUTO_COLLAPSE,
+      title: 'Auto-collapse inactive groups',
+      type: 'checkbox',
+      checked: state.shouldAutoCollapseInactive,
       contexts: ['action'],
     });
   });
 };
 
-const initSettings = async (): Promise<void> => {
-  const result = await chrome.storage.sync.get({ [STORAGE_KEY]: false });
-  groupSingleTabs = result[STORAGE_KEY] as boolean;
-  setupContextMenu(groupSingleTabs);
+const refreshSettingsFromStorage = async (): Promise<void> => {
+  const storedSettings = await chrome.storage.sync.get({
+    [STORAGE_KEY_GROUP_SINGLE_TABS]: false,
+    [STORAGE_KEY_AUTO_COLLAPSE]: false,
+  });
+
+  state.shouldGroupSingleTabs = storedSettings[STORAGE_KEY_GROUP_SINGLE_TABS] as boolean;
+  state.shouldAutoCollapseInactive = storedSettings[STORAGE_KEY_AUTO_COLLAPSE] as boolean;
+};
+
+const handleGroupSingleTabsToggle = async (isChecked: boolean): Promise<void> => {
+  state.shouldGroupSingleTabs = isChecked;
+  await saveSettingToStorage(STORAGE_KEY_GROUP_SINGLE_TABS, isChecked);
+  await processTabChanges();
+};
+
+const handleAutoCollapseToggle = async (isChecked: boolean): Promise<void> => {
+  state.shouldAutoCollapseInactive = isChecked;
+  await saveSettingToStorage(STORAGE_KEY_AUTO_COLLAPSE, isChecked);
+  if (isChecked) {
+    await collapseAllInactiveGroups();
+  }
+};
+
+const initializeExtension = async (): Promise<void> => {
+  await refreshSettingsFromStorage();
+  createContextMenu();
 };
 
 chrome.runtime.onInstalled.addListener(() => {
-  initSettings();
+  initializeExtension();
 });
 
 chrome.runtime.onStartup.addListener(() => {
-  initSettings();
+  initializeExtension();
 });
 
 chrome.contextMenus.onClicked.addListener(async (info) => {
-  if (info.menuItemId === MENU_ID) {
-    groupSingleTabs = !!info.checked;
-    localChange = true;
-    await chrome.storage.sync.set({ [STORAGE_KEY]: groupSingleTabs });
-    localChange = false;
-    await applySettings();
+  if (info.menuItemId === MENU_ID_GROUP_SINGLE_TABS) {
+    await handleGroupSingleTabsToggle(!!info.checked);
+  } else if (info.menuItemId === MENU_ID_AUTO_COLLAPSE) {
+    await handleAutoCollapseToggle(!!info.checked);
   }
 });
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName === 'sync' && changes[STORAGE_KEY] && !localChange) {
-    groupSingleTabs = (changes[STORAGE_KEY].newValue ?? false) as boolean;
-    setupContextMenu(groupSingleTabs);
-    applySettings();
+  if (areaName !== 'sync' || state.isLocalStorageChange) return;
+
+  if (changes[STORAGE_KEY_GROUP_SINGLE_TABS]) {
+    state.shouldGroupSingleTabs = (changes[STORAGE_KEY_GROUP_SINGLE_TABS].newValue ??
+      false) as boolean;
+    createContextMenu();
+    processTabChanges();
+  }
+
+  if (changes[STORAGE_KEY_AUTO_COLLAPSE]) {
+    state.shouldAutoCollapseInactive = (changes[STORAGE_KEY_AUTO_COLLAPSE].newValue ??
+      false) as boolean;
+    createContextMenu();
   }
 });
 
-chrome.tabs.onCreated.addListener((tab: chrome.tabs.Tab) => {
+chrome.tabs.onCreated.addListener((tab) => {
   if (isValidTabUrl(tab.url)) {
-    debouncedGroupTabs();
+    scheduleTabProcessing();
   }
 });
 
-chrome.tabs.onUpdated.addListener((_tabId: number, changeInfo: chrome.tabs.OnUpdatedInfo) => {
+chrome.tabs.onUpdated.addListener((_tabId, changeInfo) => {
   if (changeInfo.status === 'complete') {
-    debouncedGroupTabs();
+    scheduleTabProcessing();
   }
 });
 
-chrome.tabs.onRemoved.addListener(async () => {
-  await ungroupIfNecessary(groupSingleTabs);
+chrome.tabs.onRemoved.addListener(() => {
+  scheduleTabProcessing();
+});
+
+chrome.tabGroups.onUpdated.addListener(async (updatedGroup) => {
+  await refreshSettingsFromStorage();
+
+  const shouldSkip =
+    !state.shouldAutoCollapseInactive || state.isCollapsingGroups || updatedGroup.collapsed;
+  if (shouldSkip) return;
+
+  state.isCollapsingGroups = true;
+  try {
+    await collapseAllGroupsExcept(updatedGroup.id, updatedGroup.windowId);
+  } finally {
+    state.isCollapsingGroups = false;
+  }
 });
