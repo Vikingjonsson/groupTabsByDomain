@@ -7,6 +7,7 @@ import {
   cleanExtensionGroupIds,
   getDeterministicColorForDomain,
   extractBaseDomain,
+  addTabsToExistingGroup,
 } from './handlers';
 
 const mockTabs: chrome.tabs.Tab[] = [];
@@ -142,6 +143,32 @@ const setActiveTab = (tabIndex: number): void => {
   }
   (mockTabs[tabIndex] as any).active = true;
 };
+
+describe('addTabsToExistingGroup', () => {
+  beforeEach(resetAllMocks);
+
+  it('falls back to creating a new group if existing group fails', async () => {
+    createMockTab(1, 'https://example.com/a', 1);
+
+    const originalGroup = chromeMock.tabs.group;
+    chromeMock.tabs.group = jest.fn().mockImplementation((options: chrome.tabs.GroupOptions) => {
+      if (options.groupId === 999) {
+        return Promise.reject(new Error('Simulated failure adding to group'));
+      }
+      return originalGroup(options);
+    });
+
+    try {
+      const result = await addTabsToExistingGroup([1], 'example.com', 1, 999);
+      expect(result).not.toBe(999);
+      const newGroup = mockGroups.find((g: chrome.tabGroups.TabGroup) => g.id === result);
+      expect(newGroup).toBeDefined();
+      expect(newGroup?.title).toBe('example.com');
+    } finally {
+      chromeMock.tabs.group = originalGroup;
+    }
+  });
+});
 
 describe('getDeterministicColorForDomain', () => {
   it('returns a valid color for a standard domain', () => {
