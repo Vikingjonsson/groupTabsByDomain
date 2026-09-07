@@ -325,6 +325,18 @@ describe('groupTabsByDomain', () => {
     expect(mockGroups[0].title).toBe('example.com');
   });
 
+  it('ignores tabs when URL constructor throws an error (unparseable URL)', async () => {
+    createMockTab(1, '://invalid-url-1', 1);
+    createMockTab(2, '://invalid-url-2', 1);
+    createMockTab(3, 'https://example.com/a', 1);
+    createMockTab(4, 'https://example.com/b', 1);
+
+    await groupTabsByDomain();
+
+    expect(mockGroups).toHaveLength(1);
+    expect(mockGroups[0].title).toBe('example.com');
+  });
+
   it('groups tabs separately per window', async () => {
     createMockTab(1, 'https://google.com/search', 1);
     createMockTab(2, 'https://google.com/images', 1);
