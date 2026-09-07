@@ -232,6 +232,7 @@ describe('extractBaseDomain', () => {
   it('returns null when URL constructor throws (unparseable invalid URL string)', () => {
     // Passes an explicitly unparseable invalid URL string to trigger the catch block
     expect(extractBaseDomain('://invalid-url')).toBeNull();
+    expect(extractBaseDomain('not a valid url format !!!')).toBeNull();
   });
 
   it('handles IP addresses and localhost', () => {
