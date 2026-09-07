@@ -122,6 +122,7 @@ const initializeExtension = async (): Promise<void> => {
   createContextMenu();
 };
 
+// Initialize extension state on install and browser startup
 chrome.runtime.onInstalled.addListener(initializeExtension);
 
 chrome.runtime.onStartup.addListener(initializeExtension);
