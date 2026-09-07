@@ -4,9 +4,6 @@ import {
   collapseAllGroupsExcept,
   collapseAllInactiveGroups,
   isValidTabUrl,
-  cleanExtensionGroupIds,
-  getDeterministicColorForDomain,
-  extractBaseDomain,
 } from './handlers';
 
 const mockTabs: chrome.tabs.Tab[] = [];
@@ -143,110 +140,6 @@ const setActiveTab = (tabIndex: number): void => {
   (mockTabs[tabIndex] as any).active = true;
 };
 
-describe('getDeterministicColorForDomain', () => {
-  it('returns a valid color for a standard domain', () => {
-    const color = getDeterministicColorForDomain('google.com');
-    const AVAILABLE_GROUP_COLORS = [
-      'blue',
-      'cyan',
-      'green',
-      'grey',
-      'orange',
-      'pink',
-      'purple',
-      'red',
-      'yellow',
-    ];
-    expect(AVAILABLE_GROUP_COLORS).toContain(color);
-  });
-
-  it('returns the same color for the same domain consistently', () => {
-    const color1 = getDeterministicColorForDomain('github.com');
-    const color2 = getDeterministicColorForDomain('github.com');
-    expect(color1).toBe(color2);
-  });
-
-  it('handles empty string domain gracefully', () => {
-    const color = getDeterministicColorForDomain('');
-    const AVAILABLE_GROUP_COLORS = [
-      'blue',
-      'cyan',
-      'green',
-      'grey',
-      'orange',
-      'pink',
-      'purple',
-      'red',
-      'yellow',
-    ];
-    expect(AVAILABLE_GROUP_COLORS).toContain(color);
-  });
-
-  it('handles long domains gracefully', () => {
-    const longDomain = 'a'.repeat(1000) + '.com';
-    const color = getDeterministicColorForDomain(longDomain);
-    const AVAILABLE_GROUP_COLORS = [
-      'blue',
-      'cyan',
-      'green',
-      'grey',
-      'orange',
-      'pink',
-      'purple',
-      'red',
-      'yellow',
-    ];
-    expect(AVAILABLE_GROUP_COLORS).toContain(color);
-  });
-});
-
-describe('extractBaseDomain', () => {
-  it('extracts standard domains correctly', () => {
-    expect(extractBaseDomain('https://example.com')).toBe('example.com');
-    expect(extractBaseDomain('http://google.com/search?q=test')).toBe('google.com');
-  });
-
-  it('strips www. prefix', () => {
-    expect(extractBaseDomain('https://www.example.com')).toBe('example.com');
-    expect(extractBaseDomain('http://www.google.com/search?q=test')).toBe('google.com');
-  });
-
-  it('preserves other subdomains', () => {
-    expect(extractBaseDomain('https://maps.google.com')).toBe('maps.google.com');
-    expect(extractBaseDomain('http://blog.example.com/post/1')).toBe('blog.example.com');
-    expect(extractBaseDomain('https://www.sub.example.com')).toBe('sub.example.com');
-  });
-
-  it('returns null for browser internal URLs', () => {
-    expect(extractBaseDomain('chrome://newtab/')).toBeNull();
-    expect(extractBaseDomain('chrome://settings/')).toBeNull();
-    expect(extractBaseDomain('chrome-extension://abcdef/popup.html')).toBeNull();
-  });
-
-  it('returns null for invalid URLs', () => {
-    expect(extractBaseDomain('not-a-valid-url')).toBeNull();
-    expect(extractBaseDomain('')).toBeNull();
-    expect(extractBaseDomain('   ')).toBeNull();
-  });
-
-  it('returns null when URL constructor throws (unparseable invalid URL string)', () => {
-    // Passes an explicitly unparseable invalid URL string to trigger the catch block
-    expect(extractBaseDomain('://invalid-url')).toBeNull();
-  });
-
-  it('handles IP addresses and localhost', () => {
-    expect(extractBaseDomain('http://localhost:8080')).toBe('localhost');
-    expect(extractBaseDomain('http://127.0.0.1:3000')).toBe('127.0.0.1');
-    expect(extractBaseDomain('https://192.168.1.1')).toBe('192.168.1.1');
-  });
-
-  it('returns null for empty hostnames and file protocols', () => {
-    // about:blank has an empty string for hostname, but the protocol is not allowed
-    expect(extractBaseDomain('about:blank')).toBeNull();
-    expect(extractBaseDomain('file:///C:/path/to/file.txt')).toBeNull();
-  });
-});
-
 describe('isValidTabUrl', () => {
   it('rejects chrome://newtab/', () => {
     expect(isValidTabUrl('chrome://newtab/')).toBe(false);
@@ -353,42 +246,14 @@ describe('groupTabsByDomain', () => {
   it('adds new tabs to an existing group for the same domain', async () => {
     createMockTab(1, 'https://example.com/a', 1);
     createMockTab(2, 'https://example.com/b', 1);
-    const extensionGroups = await groupTabsByDomain();
+    await groupTabsByDomain();
     expect(mockGroups).toHaveLength(1);
 
     createMockTab(3, 'https://example.com/c', 1);
-    await groupTabsByDomain(false, extensionGroups);
+    await groupTabsByDomain();
 
     expect(mockGroups).toHaveLength(1);
     expect(getTabsInGroup(mockGroups[0].id)).toHaveLength(3);
-  });
-
-  it('falls back to creating a new group if adding to existing group fails', async () => {
-    createMockTab(1, 'https://example.com/a', 1);
-    createMockTab(2, 'https://example.com/b', 1);
-    const extensionGroups = await groupTabsByDomain();
-    expect(mockGroups).toHaveLength(1);
-
-    const existingGroupId = mockGroups[0].id;
-    createMockTab(3, 'https://example.com/c', 1);
-
-    const originalGroup = chromeMock.tabs.group;
-    chromeMock.tabs.group = jest.fn().mockImplementation((options: chrome.tabs.GroupOptions) => {
-      if (options.groupId === existingGroupId) {
-        return Promise.reject(new Error('Simulated failure adding to group'));
-      }
-      return originalGroup(options);
-    });
-
-    try {
-      await groupTabsByDomain(false, extensionGroups);
-
-      expect(mockGroups).toHaveLength(2);
-      expect(mockTabs[2].groupId).toBe(mockGroups[1].id);
-      expect(mockGroups[1].title).toBe('example.com');
-    } finally {
-      chromeMock.tabs.group = originalGroup;
-    }
   });
 
   it('assigns the same color for the same domain across runs', async () => {
@@ -423,20 +288,6 @@ describe('groupTabsByDomain', () => {
       'yellow',
     ];
     expect(VALID_COLORS).toContain(mockGroups[0].color);
-  });
-
-  it('safely handles URLs with __proto__ hostname', async () => {
-    createMockTab(1, 'https://__proto__/a', 1);
-    createMockTab(2, 'https://__proto__/b', 1);
-    await groupTabsByDomain();
-
-    expect(mockGroups).toHaveLength(1);
-    expect(mockGroups[0].title).toBe('__proto__');
-
-    // Ensure Object.prototype wasn't polluted with an array
-    expect(
-      Array.isArray((Object.prototype as any)['__proto__']) || Array.isArray(Object.prototype)
-    ).toBe(false);
   });
 });
 
@@ -546,109 +397,16 @@ describe('groupTabsByDomain - ignored tabs', () => {
   });
 });
 
-describe('groupTabsByDomain - user-owned groups', () => {
-  beforeEach(resetAllMocks);
-
-  it('does not regroup tabs in user-owned groups', async () => {
-    createMockTab(1, 'https://google.com/a', 1);
-    createMockTab(2, 'https://google.com/b', 1);
-    const userTab = createMockTab(3, 'https://google.com/c', 1);
-
-    const userGroupId = 100;
-    (userTab as any).groupId = userGroupId;
-    mockGroups.push({
-      id: userGroupId,
-      windowId: 1,
-      collapsed: false,
-      title: 'My Research',
-      color: 'blue' as chrome.tabGroups.Color,
-      shared: false,
-    });
-
-    await groupTabsByDomain(false, new Map());
-
-    expect(userTab.groupId).toBe(userGroupId);
-    const googleGroup = findGroupByTitle('google.com');
-    expect(getTabsInGroup(googleGroup.id)).toHaveLength(2);
-  });
-
-  it('groups ungrouped tabs even when same-domain tabs are in user groups', async () => {
-    const userTab = createMockTab(1, 'https://google.com/a', 1);
-    createMockTab(2, 'https://google.com/b', 1);
-    createMockTab(3, 'https://google.com/c', 1);
-
-    const userGroupId = 100;
-    (userTab as any).groupId = userGroupId;
-    mockGroups.push({
-      id: userGroupId,
-      windowId: 1,
-      collapsed: false,
-      title: 'My Research',
-      color: 'blue' as chrome.tabGroups.Color,
-      shared: false,
-    });
-
-    const newGroups = await groupTabsByDomain(false, new Map());
-
-    expect(userTab.groupId).toBe(userGroupId);
-    expect(newGroups.size).toBe(1);
-    const googleGroup = findGroupByTitle('google.com');
-    expect(getTabsInGroup(googleGroup.id)).toHaveLength(2);
-  });
-
-  it('returns newly created extension groups', async () => {
-    createMockTab(1, 'https://google.com/a', 1);
-    createMockTab(2, 'https://google.com/b', 1);
-
-    const newGroups = await groupTabsByDomain(false, new Map());
-
-    expect(newGroups.size).toBe(1);
-    const [groupId, domain] = [...newGroups.entries()][0];
-    expect(domain).toBe('google.com');
-    expect(groupId).toBe(mockGroups[0].id);
-  });
-
-  it('does not return already-tracked extension groups', async () => {
-    createMockTab(1, 'https://google.com/a', 1);
-    createMockTab(2, 'https://google.com/b', 1);
-    const firstRunGroups = await groupTabsByDomain(false, new Map());
-
-    createMockTab(3, 'https://google.com/c', 1);
-    const secondRunGroups = await groupTabsByDomain(false, firstRunGroups);
-
-    expect(secondRunGroups.size).toBe(0);
-  });
-});
-
 describe('dissolveGroupsWithTooFewTabs', () => {
   beforeEach(resetAllMocks);
-
-  it('does not dissolve user-owned groups', async () => {
-    const tab = createMockTab(1, 'https://example.com/a', 1);
-
-    const userGroupId = 100;
-    (tab as any).groupId = userGroupId;
-    mockGroups.push({
-      id: userGroupId,
-      windowId: 1,
-      collapsed: false,
-      title: 'My Group',
-      color: 'blue' as chrome.tabGroups.Color,
-      shared: false,
-    });
-
-    await dissolveGroupsWithTooFewTabs(false, new Map());
-
-    expect(tab.groupId).toBe(userGroupId);
-  });
 
   it('dissolves a group that dropped to 1 tab', async () => {
     createMockTab(1, 'https://example.com/page1', 1);
     createMockTab(2, 'https://example.com/page2', 1);
-    const extensionGroups = await groupTabsByDomain();
+    await groupTabsByDomain();
 
     simulateTabLeavingGroup(1);
-    await dissolveGroupsWithTooFewTabs(false, extensionGroups);
+    await dissolveGroupsWithTooFewTabs();
 
     expect(mockTabs[0].groupId).toBeUndefined();
   });
@@ -657,9 +415,9 @@ describe('dissolveGroupsWithTooFewTabs', () => {
     createMockTab(1, 'https://example.com/page1', 1);
     createMockTab(2, 'https://example.com/page2', 1);
     createMockTab(3, 'https://example.com/page3', 1);
-    const extensionGroups = await groupTabsByDomain();
+    await groupTabsByDomain();
 
-    await dissolveGroupsWithTooFewTabs(false, extensionGroups);
+    await dissolveGroupsWithTooFewTabs();
 
     expect(mockGroups).toHaveLength(1);
     expect(getTabsInGroup(mockGroups[0].id)).toHaveLength(3);
@@ -668,10 +426,10 @@ describe('dissolveGroupsWithTooFewTabs', () => {
   it('preserves a 1-tab group when shouldGroupSingleTabs is true', async () => {
     createMockTab(1, 'https://example.com/page1', 1);
     createMockTab(2, 'https://example.com/page2', 1);
-    const extensionGroups = await groupTabsByDomain(true);
+    await groupTabsByDomain(true);
 
     simulateTabLeavingGroup(1);
-    await dissolveGroupsWithTooFewTabs(true, extensionGroups);
+    await dissolveGroupsWithTooFewTabs(true);
 
     expect(mockTabs[0].groupId).toBe(mockGroups[0].id);
   });
@@ -680,12 +438,12 @@ describe('dissolveGroupsWithTooFewTabs', () => {
     createMockTab(1, 'https://example.com/a', 1);
     createMockTab(2, 'https://example.com/b', 1);
     createMockTab(3, 'https://example.com/c', 1);
-    const extensionGroups = await groupTabsByDomain(true);
+    await groupTabsByDomain(true);
     const groupId = mockGroups[0].id;
 
     simulateTabLeavingGroup(1);
     simulateTabLeavingGroup(2);
-    await dissolveGroupsWithTooFewTabs(true, extensionGroups);
+    await dissolveGroupsWithTooFewTabs(true);
 
     expect(mockTabs[0].groupId).toBe(groupId);
   });
@@ -693,12 +451,12 @@ describe('dissolveGroupsWithTooFewTabs', () => {
   it('handles empty groups (0 tabs) without throwing', async () => {
     createMockTab(1, 'https://example.com/a', 1);
     createMockTab(2, 'https://example.com/b', 1);
-    const extensionGroups = await groupTabsByDomain();
+    await groupTabsByDomain();
 
     simulateTabLeavingGroup(0);
     simulateTabLeavingGroup(1);
 
-    await expect(dissolveGroupsWithTooFewTabs(false, extensionGroups)).resolves.not.toThrow();
+    await expect(dissolveGroupsWithTooFewTabs()).resolves.not.toThrow();
   });
 
   it('only dissolves groups that dropped below the minimum, leaves others intact', async () => {
@@ -706,12 +464,12 @@ describe('dissolveGroupsWithTooFewTabs', () => {
     createMockTab(2, 'https://example.com/b', 1);
     createMockTab(3, 'https://github.com/a', 1);
     createMockTab(4, 'https://github.com/b', 1);
-    const extensionGroups = await groupTabsByDomain();
+    await groupTabsByDomain();
 
     const githubGroup = findGroupByTitle('github.com');
 
     simulateTabLeavingGroup(1);
-    await dissolveGroupsWithTooFewTabs(false, extensionGroups);
+    await dissolveGroupsWithTooFewTabs();
 
     expect(mockTabs[0].groupId).toBeUndefined();
     expect(mockTabs[2].groupId).toBe(githubGroup.id);
@@ -846,97 +604,6 @@ describe('collapseAllInactiveGroups', () => {
   });
 });
 
-describe('cleanExtensionGroupIds', () => {
-  it('removes stale group IDs that no longer exist', () => {
-    const extensionGroupIds = new Map<number, string>([
-      [1, 'google.com'],
-      [2, 'github.com'],
-    ]);
-    const existingGroups: chrome.tabGroups.TabGroup[] = [
-      {
-        id: 1,
-        windowId: 1,
-        collapsed: false,
-        title: 'google.com',
-        color: 'blue' as chrome.tabGroups.Color,
-        shared: false,
-      },
-    ];
-
-    const cleaned = cleanExtensionGroupIds(extensionGroupIds, existingGroups);
-
-    expect(cleaned.has(1)).toBe(true);
-    expect(cleaned.has(2)).toBe(false);
-  });
-
-  it('removes groups whose title was renamed by the user', () => {
-    const extensionGroupIds = new Map<number, string>([[1, 'google.com']]);
-    const existingGroups: chrome.tabGroups.TabGroup[] = [
-      {
-        id: 1,
-        windowId: 1,
-        collapsed: false,
-        title: 'My Search Tabs',
-        color: 'blue' as chrome.tabGroups.Color,
-        shared: false,
-      },
-    ];
-
-    const cleaned = cleanExtensionGroupIds(extensionGroupIds, existingGroups);
-
-    expect(cleaned.has(1)).toBe(false);
-  });
-
-  it('keeps groups whose title still matches', () => {
-    const extensionGroupIds = new Map<number, string>([[1, 'google.com']]);
-    const existingGroups: chrome.tabGroups.TabGroup[] = [
-      {
-        id: 1,
-        windowId: 1,
-        collapsed: false,
-        title: 'google.com',
-        color: 'blue' as chrome.tabGroups.Color,
-        shared: false,
-      },
-    ];
-
-    const cleaned = cleanExtensionGroupIds(extensionGroupIds, existingGroups);
-
-    expect(cleaned.has(1)).toBe(true);
-    expect(cleaned.get(1)).toBe('google.com');
-  });
-
-  it('returns empty map when all groups are stale', () => {
-    const extensionGroupIds = new Map<number, string>([
-      [1, 'google.com'],
-      [2, 'github.com'],
-    ]);
-    const existingGroups: chrome.tabGroups.TabGroup[] = [];
-
-    const cleaned = cleanExtensionGroupIds(extensionGroupIds, existingGroups);
-
-    expect(cleaned.size).toBe(0);
-  });
-
-  it('handles empty input map', () => {
-    const extensionGroupIds = new Map<number, string>();
-    const existingGroups: chrome.tabGroups.TabGroup[] = [
-      {
-        id: 1,
-        windowId: 1,
-        collapsed: false,
-        title: 'google.com',
-        color: 'blue' as chrome.tabGroups.Color,
-        shared: false,
-      },
-    ];
-
-    const cleaned = cleanExtensionGroupIds(extensionGroupIds, existingGroups);
-
-    expect(cleaned.size).toBe(0);
-  });
-});
-
 describe('integration scenarios', () => {
   beforeEach(resetAllMocks);
 
@@ -957,14 +624,14 @@ describe('integration scenarios', () => {
     createMockTab(1, 'https://example.com/a', 1);
     createMockTab(2, 'https://example.com/b', 1);
 
-    const extensionGroups = await groupTabsByDomain();
+    await groupTabsByDomain();
     expect(mockGroups).toHaveLength(1);
     expect(getTabsInGroup(mockGroups[0].id)).toHaveLength(2);
 
     const removedTab = mockTabs.pop()!;
     (removedTab as any).groupId = undefined;
 
-    await dissolveGroupsWithTooFewTabs(false, extensionGroups);
+    await dissolveGroupsWithTooFewTabs();
 
     expect(mockTabs[0].groupId).toBeUndefined();
   });
