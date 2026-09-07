@@ -497,6 +497,17 @@ describe('groupTabsByDomain - ignored tabs', () => {
     expect(getTabsInGroup(mockGroups[0].id)).toHaveLength(2);
   });
 
+  it('ignores tabs with explicitly unparseable invalid URLs that throw', async () => {
+    createMockTab(1, '://invalid-url', 1);
+    createMockTab(2, 'https://example.com/a', 1);
+    createMockTab(3, 'https://example.com/b', 1);
+
+    await groupTabsByDomain();
+
+    expect(mockGroups).toHaveLength(1);
+    expect(mockGroups[0].title).toBe('example.com');
+  });
+
   it('ignores tabs with invalid URLs', async () => {
     createMockTab(1, 'not-a-valid-url', 1);
     createMockTab(2, 'also-invalid', 1);
